@@ -7,7 +7,7 @@
 <style>
 :root{--bg:#f5f4f0;--card:#fff;--text:#1f1f1c;--muted:#6e6d66;--line:#e3e1d9;--accent:#2f7d5b;--warn:#c2410c;--warnbg:#fff1e8;--okbg:#e7f4ed;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161614;--card:#211f1d;--text:#ecebe6;--muted:#9a988f;--line:#34322e;--accent:#4cc38a;--warn:#fb9a62;--warnbg:#3a2418;--okbg:#17302400;color-scheme:dark}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161614;--card:#211f1d;--text:#ecebe6;--muted:#9a988f;--line:#34322e;--accent:#4cc38a;--warn:#fb9a62;--warnbg:#3a2418;--okbg:#173024;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#161614;--card:#211f1d;--text:#ecebe6;--muted:#9a988f;--line:#34322e;--accent:#4cc38a;--warn:#fb9a62;--warnbg:#3a2418;--okbg:#173024;color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px 16px 48px}
@@ -15,6 +15,8 @@ body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-a
 h1{font-size:22px;margin:0 0 2px}
 .sub{color:var(--muted);margin:0 0 16px}
 .bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+#theme{white-space:nowrap}
 input[type=text],textarea{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font:inherit;min-width:0}
 .bar input{flex:1;min-width:160px}
 button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:8px;padding:8px 12px;cursor:pointer}
@@ -42,8 +44,11 @@ li input{accent-color:var(--accent);width:17px;height:17px}
 </head>
 <body>
 <div class="wrap">
-  <h1>Tracker Akun Mingguan</h1>
-  <p class="sub" id="sub"></p>
+  <div class="head">
+    <div><h1>Tracker Akun Mingguan</h1>
+    <p class="sub" id="sub"></p></div>
+    <button id="theme" type="button">🌙 Gelap</button>
+  </div>
   <div class="bar">
     <input type="text" id="newGroup" placeholder="Nama kotak, mis. Game A / Server 1">
     <button class="p" id="addGroup">+ Tambah kotak</button>
@@ -115,6 +120,11 @@ document.getElementById("grid").addEventListener("click",function(e){
 document.getElementById("grid").addEventListener("keydown",function(e){
   if(e.key==="Enter"&&e.target.dataset.in)addAccounts(e.target.dataset.in);
 });
+var TK="akun-tracker-theme";
+function curTheme(){var t=null;try{t=localStorage.getItem(TK)}catch(e){}if(t=="dark"||t=="light")return t;return window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}
+function applyTheme(t){document.documentElement.setAttribute("data-theme",t);document.getElementById("theme").textContent=t==="dark"?"☀️ Terang":"🌙 Gelap"}
+document.getElementById("theme").onclick=function(){var n=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";applyTheme(n);try{localStorage.setItem(TK,n)}catch(e){}};
+applyTheme(curTheme());
 render();
 </script>
 </body>
