@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tracker Akun Mingguan</title>
+<style>
+:root{--bg:#f5f4f0;--card:#fff;--text:#1f1f1c;--muted:#6e6d66;--line:#e3e1d9;--accent:#2f7d5b;--warn:#c2410c;--warnbg:#fff1e8;--okbg:#e7f4ed;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161614;--card:#211f1d;--text:#ecebe6;--muted:#9a988f;--line:#34322e;--accent:#4cc38a;--warn:#fb9a62;--warnbg:#3a2418;--okbg:#17302400;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#161614;--card:#211f1d;--text:#ecebe6;--muted:#9a988f;--line:#34322e;--accent:#4cc38a;--warn:#fb9a62;--warnbg:#3a2418;--okbg:#173024;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px 16px 48px}
+.wrap{max-width:1000px;margin:0 auto}
+h1{font-size:22px;margin:0 0 2px}
+.sub{color:var(--muted);margin:0 0 16px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+input[type=text],textarea{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font:inherit;min-width:0}
+.bar input{flex:1;min-width:160px}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:8px;padding:8px 12px;cursor:pointer}
+button.p{background:var(--accent);border-color:var(--accent);color:#fff}
+button.x{border:none;background:none;color:var(--muted);padding:2px 6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card.done{border-color:var(--accent)}
+.ch{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ch b{font-size:16px;word-break:break-word}
+.prog{height:6px;background:var(--line);border-radius:4px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .2s}
+.meta{font-size:13px;color:var(--muted)}
+.meta .w{color:var(--warn);font-weight:600}
+ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+li{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;background:var(--warnbg);cursor:pointer}
+li.ok{background:var(--okbg);color:var(--muted);text-decoration:line-through}
+li span{flex:1;word-break:break-all}
+li input{accent-color:var(--accent);width:17px;height:17px}
+.add{display:flex;gap:6px}
+.add input{flex:1}
+.empty{color:var(--muted);font-size:13px}
+.foot{margin-top:22px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Tracker Akun Mingguan</h1>
+  <p class="sub" id="sub"></p>
+  <div class="bar">
+    <input type="text" id="newGroup" placeholder="Nama kotak, mis. Game A / Server 1">
+    <button class="p" id="addGroup">+ Tambah kotak</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="foot">
+    <button id="reset">Reset centang minggu ini</button>
+    <span>Centang otomatis kosong lagi tiap Senin. Data tersimpan di browser ini.</span>
+  </div>
+</div>
+<script>
+var KEY="akun-tracker-v1";
+var S={groups:[],done:{}};
+try{var raw=localStorage.getItem(KEY);if(raw)S=JSON.parse(raw)}catch(e){}
+if(!S.groups)S.groups=[];if(!S.done)S.done={};
+
+function weekStart(){var d=new Date();d.setHours(0,0,0,0);var day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d}
+function fmt(d){return d.toLocaleDateString("id-ID",{day:"numeric",month:"short"})}
+var ws=weekStart(),WK=ws.getFullYear()+"-"+(ws.getMonth()+1)+"-"+ws.getDate();
+var we=new Date(ws);we.setDate(we.getDate()+6);
+// buang data minggu lama
+Object.keys(S.done).forEach(function(k){if(k!==WK)delete S.done[k]});
+if(!S.done[WK])S.done[WK]={};
+
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+function render(){
+  var tot=0,dn=0;
+  var html=S.groups.map(function(g){
+    var n=g.accounts.length,d=g.accounts.filter(function(a){return S.done[WK][a.id]}).length;
+    tot+=n;dn+=d;var left=n-d;
+    var items=g.accounts.map(function(a){
+      var ok=!!S.done[WK][a.id];
+      return '<li class="'+(ok?'ok':'')+'" data-t="'+a.id+'"><input type="checkbox" '+(ok?'checked':'')+'><span>'+esc(a.name)+'</span><button class="x" data-da="'+g.id+'|'+a.id+'" title="Hapus">✕</button></li>';
+    }).join("")||'<div class="empty">Belum ada ID. Tambahkan di bawah.</div>';
+    return '<div class="card '+(n&&!left?'done':'')+'"><div class="ch"><b>'+esc(g.name)+'</b><button class="x" data-dg="'+g.id+'" title="Hapus kotak">🗑</button></div>'+
+      '<div class="prog"><i style="width:'+(n?d/n*100:0)+'%"></i></div>'+
+      '<div class="meta">'+d+'/'+n+' selesai'+(n?(left?' · <span class="w">'+left+' belum</span>':' · semua beres ✓'):'')+'</div>'+
+      '<ul>'+items+'</ul>'+
+      '<div class="add"><input type="text" placeholder="Tambah ID (pisah koma)" data-in="'+g.id+'"><button data-ag="'+g.id+'">+</button></div></div>';
+  }).join("");
+  document.getElementById("grid").innerHTML=html||'<p class="empty">Belum ada kotak. Buat satu di atas.</p>';
+  document.getElementById("sub").textContent="Minggu "+fmt(ws)+" – "+fmt(we)+" · "+dn+"/"+tot+" akun sudah dimainkan";
+}
+
+function addAccounts(gid){
+  var inp=document.querySelector('[data-in="'+gid+'"]');if(!inp)return;
+  var g=S.groups.find(function(x){return x.id===gid});
+  inp.value.split(/[,\n]/).map(function(s){return s.trim()}).filter(Boolean).forEach(function(n){g.accounts.push({id:uid(),name:n})});
+  save();render();
+}
+function addGroup(){
+  var i=document.getElementById("newGroup"),v=i.value.trim();if(!v)return;
+  S.groups.push({id:uid(),name:v,accounts:[]});i.value="";save();render();
+}
+
+document.getElementById("addGroup").onclick=addGroup;
+document.getElementById("newGroup").onkeydown=function(e){if(e.key==="Enter")addGroup()};
+document.getElementById("reset").onclick=function(){if(confirm("Kosongkan semua centang minggu ini?")){S.done[WK]={};save();render()}};
+document.getElementById("grid").addEventListener("click",function(e){
+  var t=e.target,b=t.closest("button"),li=t.closest("li");
+  if(b&&b.dataset.dg){if(confirm("Hapus kotak ini beserta semua ID-nya?")){S.groups=S.groups.filter(function(g){return g.id!==b.dataset.dg});save();render()}return}
+  if(b&&b.dataset.da){var p=b.dataset.da.split("|"),g=S.groups.find(function(x){return x.id===p[0]});g.accounts=g.accounts.filter(function(a){return a.id!==p[1]});delete S.done[WK][p[1]];save();render();return}
+  if(b&&b.dataset.ag){addAccounts(b.dataset.ag);return}
+  if(li){var id=li.dataset.t;if(S.done[WK][id])delete S.done[WK][id];else S.done[WK][id]=true;save();render()}
+});
+document.getElementById("grid").addEventListener("keydown",function(e){
+  if(e.key==="Enter"&&e.target.dataset.in)addAccounts(e.target.dataset.in);
+});
+render();
+</script>
+</body>
+</html>
